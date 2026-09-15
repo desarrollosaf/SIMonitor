@@ -1,0 +1,44 @@
+{
+  "profiles": {
+    "SIMULADOR-WIFI": {
+      "mode": "simulation",
+      "description": "Laboratorio. Genera métricas Wi-Fi sintéticas y NO consulta la red."
+    },
+    "SIMULADOR-SWITCH": {
+      "mode": "simulation",
+      "description": "Laboratorio. Simula un switch de 24 puertos para probar mapa, histórico y nombres sin consultar la red."
+    },
+    "SNMPV3-ESTANDAR": {
+      "mode": "snmpv3",
+      "description": "Switch compatible con IF-MIB/IF-X-MIB/EtherLike-MIB y LLDP-MIB estándar. Las OID de switch ya vienen integradas en la sonda.",
+      "port": 161,
+      "timeoutMs": 1800,
+      "retries": 1,
+      "user": "monitor_readonly",
+      "securityLevel": "authPriv",
+      "authProtocol": "sha",
+      "authKey": "CAMBIAR_AUTH_KEY",
+      "privProtocol": "aes",
+      "privKey": "CAMBIAR_PRIV_KEY",
+      "maxPorts": 256
+    },
+    "LAB-SNMPV3-EJEMPLO": {
+      "mode": "snmpv3",
+      "description": "Ejemplo para AP. Sustituya credenciales y OIDs por los de su fabricante/modelo.",
+      "port": 161,
+      "timeoutMs": 1800,
+      "retries": 1,
+      "user": "monitor_readonly",
+      "securityLevel": "authPriv",
+      "authProtocol": "sha",
+      "authKey": "CAMBIAR_AUTH_KEY",
+      "privProtocol": "aes",
+      "privKey": "CAMBIAR_PRIV_KEY",
+      "apMetrics": {
+        "uptime_ticks": "1.3.6.1.2.1.1.3.0"
+      },
+      "radios": [],
+      "ssids": []
+    }
+  }
+}

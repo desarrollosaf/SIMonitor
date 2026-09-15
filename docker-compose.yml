@@ -1,0 +1,73 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      args:
+        # Ej: BASE_HREF=/redes/ si se publica bajo https://dominio/redes
+        BASE_HREF: ${BASE_HREF:-/}
+    restart: unless-stopped
+    # Permite usar DB_HOST=host.docker.internal si su MySQL corre en este mismo
+    # servidor pero fuera de Docker (funciona en Linux con Docker 20.10+).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      # Su MySQL propio (fuera de este docker-compose).
+      DB_HOST: ${DB_HOST:?Defina DB_HOST en .env}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_USER: ${DB_USER:?Defina DB_USER en .env}
+      DB_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD en .env}
+      DB_NAME: ${DB_NAME:-monitor_red}
+      PORT: 3000
+      ADMIN_USER: ${ADMIN_USER:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Defina ADMIN_PASSWORD (10+ caracteres) en .env}
+      JWT_SECRET: ${JWT_SECRET:?Defina JWT_SECRET (32+ caracteres aleatorios) en .env}
+      START_LOCAL_AGENT: "false"
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+      RETENTION_DAYS: ${RETENTION_DAYS:-30}
+      HEARTBEAT_RETENTION_HOURS: ${HEARTBEAT_RETENTION_HOURS:-48}
+      RETENTION_EVERY_MIN: ${RETENTION_EVERY_MIN:-60}
+      AUDIT_RETENTION_DAYS: ${AUDIT_RETENTION_DAYS:-365}
+      AGENT_STALE_SEC: ${AGENT_STALE_SEC:-90}
+      FAIL_CONFIRMATIONS: ${FAIL_CONFIRMATIONS:-3}
+      RECOVERY_CONFIRMATIONS: ${RECOVERY_CONFIRMATIONS:-2}
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    networks: [monitor]
+
+  # Agente de Sitio opcional, sólo si este mismo host va a monitorear SU PROPIA
+  # LAN física (switches, APs, UPS, etc.). Para sedes remotas, el agente se
+  # instala y ejecuta en un equipo dentro de esa red, no aquí.
+  #
+  # IMPORTANTE: la red "bridge" de Docker NO alcanza la LAN del host. Para que
+  # ping/SNMP lleguen a los equipos reales normalmente hace falta
+  # "network_mode: host" (sólo funciona en Linux) o una red macvlan.
+  #
+  # Actívalo con:  docker compose --profile local-agent up -d
+  agent-local:
+    build:
+      context: .
+      dockerfile: probe/Dockerfile
+    restart: unless-stopped
+    profiles: ["local-agent"]
+    depends_on: [app]
+    network_mode: host
+    cap_add:
+      - NET_RAW
+    environment:
+      # Con network_mode: host no hay DNS interno de Docker: use la IP/hostname
+      # real del servidor, o localhost si corre en el mismo host.
+      API_URL: ${AGENT_API_URL:-http://localhost:3000/api}
+      AGENT_TOKEN: ${AGENT_TOKEN?Cree el agente desde la web (Agentes / Admin) y pegue aquí su token}
+      AGENT_NAME: ${AGENT_NAME:-Agente-Docker-Local}
+      SNMP_PROFILES_FILE: /app/config/snmp-profiles.json
+      AGENT_BUFFER_DB: /app/data/agent-buffer.sqlite
+    volumes:
+      - ./probe/config:/app/config
+      - probe_data:/app/data
+
+volumes:
+  probe_data:
+
+networks:
+  monitor:

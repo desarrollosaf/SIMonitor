@@ -1,0 +1,11 @@
+config.env
+agent.env
+.env
+**/.env
+**/node_modules/
+**/dist/
+backend/public/
+probe/config/snmp-profiles.json
+probe/data/
+logs/
+*.log
