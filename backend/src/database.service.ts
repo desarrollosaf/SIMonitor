@@ -16,7 +16,15 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
     const dbName = process.env.DB_NAME || 'monitor_red';
     try {
       const admin = await mysql.createConnection(cfg);
-      await admin.query(`CREATE DATABASE IF NOT EXISTS \`${dbName.replace(/`/g, '')}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci`);
+      const safeName = dbName.replace(/`/g, '');
+      try {
+        // utf8mb4_0900_ai_ci sólo existe en MySQL 8+; en MySQL 5.7/MariaDB se usa el
+        // equivalente ampliamente soportado utf8mb4_unicode_ci.
+        await admin.query(`CREATE DATABASE IF NOT EXISTS \`${safeName}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci`);
+      } catch (ce: any) {
+        if (ce.code !== 'ER_UNKNOWN_COLLATION') throw ce;
+        await admin.query(`CREATE DATABASE IF NOT EXISTS \`${safeName}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
+      }
       await admin.end();
     } catch (e: any) {
       console.error('\n============================================================');
